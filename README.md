@@ -1,4 +1,3 @@
 hello-world
 ===========
-just  a test
-2nd test
+This is my 1st git env
