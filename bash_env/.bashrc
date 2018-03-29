@@ -92,7 +92,7 @@ alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 alias ssh='ssh -l vklaniuk'
-alias nc='nc -v'
+alias nc='nc -v -w5'
 alias python=python2.7
 
 # Add an "alert" alias for long running commands.  Use like so:
