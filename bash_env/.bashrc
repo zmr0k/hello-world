@@ -122,4 +122,4 @@ fi
 export DOCKER_HOST=localhost:2375
 
 PS1='\t \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]@\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-“export DOCKER_HOST=‘tcp://0.0.0.0:2375’”
+export DOCKER_HOST=‘tcp://0.0.0.0:2375’
