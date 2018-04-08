@@ -1,0 +1,88 @@
+function Manage-Logfiles {
+    [CmdletBinding()]
+    param (
+        [parameter(Mandatory=$true, ValueFromPipeline=$false)]
+        [string[]]$path,
+        [parameter(Mandatory=$true, ValueFromPipeline=$false)]
+        [ValidateSet("compress","remove","archive")]
+        [string[]]$action,
+        [parameter(Mandatory=$true, ValueFromPipeline=$false)]
+        [Int32]$days
+    )
+    BEGIN {
+        if ( Test-Path $path ) {
+            # List of files to process          
+            $files = Get-ChildItem -Path $path -Recurse -Attributes Archive | Where-Object { $_.Extension -eq ".log"}
+            # Filter by date (older than x days)
+            $now = Get-Date
+            $target_date = $now.AddDays(-$days)
+            $files = $files | Where-Object { $_.LastWriteTime -lt $target_date }
+        } else {
+            Write-Error "$path not found."
+        }
+    }
+    PROCESS {
+        if ( $files -ne $null ) {
+            #Write-Output "=== List of files to process ==="
+            #Write-Output $files | Select-Object FullName, LastWriteTime
+            if ($action -eq "compress") {
+                foreach ($file in $files) {
+                    Compress-File $file.FullName
+                }
+            } elseif ($action -eq "remove") {
+                foreach ($file in $files) {
+                    $fullpath = $file.FullName
+                    Write-Output "Deleting: $fullpath"
+                    Remove-Item -Force $fullpath
+                }
+            } elseif ($action -eq "archive") {
+                Write-Output "Archiving not implemented yet"
+            }
+        } else {
+            Write-Output "Nothing to do :)"
+        }
+
+    }
+    END {
+
+    }
+}
+
+function Compress-File {
+    [CmdletBinding()]
+    param (
+        [parameter(Mandatory=$true, ValueFromPipeline=$false)]
+        [string[]]$file
+    )
+    BEGIN {
+        if ( -Not (Test-Path -LiteralPath $file)) {
+            Write-Error "$file not found"
+        }
+    }
+    PROCESS {
+        $zip_name = "$file.zip"
+        Write-Output "Compressing: $zip_name"
+        $p = Start-Process "D:\ADMINSCRIPTS\7za.exe" -ArgumentList "a $zip_name $file" -Wait -NoNewWindow -PassThru
+        $result = $p.ExitCode
+        if ($result -ne 0) {
+            Write-Error "ExitCode=$result"
+        } else {
+            Write-Output "Deleting: $file"
+            Remove-Item -Force -path $file
+        }        
+    }
+    END {
+
+    }
+}
+
+
+$ErrorActionPreference="SilentlyContinue"
+
+# Check parameters 
+if ($args[2] -ne $null) {
+    Write-Output "Executing: ./logrotate $args"
+    Manage-Logfiles $args[0] $args[1] $args[2]
+} else {
+    Write-Error "SYNTAX ERROR. Use: ./logrotate.ps1 <path> <action> <days>"
+}
