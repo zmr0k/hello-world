@@ -1,0 +1,1 @@
+time gzip -9  < access.log > access.log.gz
