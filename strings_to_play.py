@@ -6,4 +6,3 @@ print "part is:", part
 
 for i in part:
     print i
-    

@@ -5,3 +5,5 @@ snmpwalk -v2c -c xxxxx <hostname or IP>  system
 snmpwalk -v 3 -u getdata -l authNoPriv -a MD5 -A xxx IP sysDescr.0
 
 # openssl
+# check cert
+openssl s_client -showcerts -connect RHOST:443
