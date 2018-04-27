@@ -1,4 +1,7 @@
 time gzip -9  < access.log > access.log.gz
 
-Snmpwalk -v2c -c xxxxx <hostname or IP>  system
+# SNMP
+snmpwalk -v2c -c xxxxx <hostname or IP>  system
 snmpwalk -v 3 -u getdata -l authNoPriv -a MD5 -A xxx IP sysDescr.0
+
+# openssl
