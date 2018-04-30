@@ -7,3 +7,5 @@ snmpwalk -v 3 -u getdata -l authNoPriv -a MD5 -A xxx IP sysDescr.0
 # openssl
 # check cert
 openssl s_client -showcerts -connect RHOST:443
+echo | openssl s_client -connect HOSTNAME:443 2>/dev/null  | openssl x509 -text
+
