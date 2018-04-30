@@ -1,0 +1,373 @@
+#!/usr/bin/env python
+# coding=utf-8
+# https://wiki.corp-apps.com/pages/viewpage.action?pageId=105539920
+
+import requests, getpass, os, paramiko, pytz
+from time import sleep
+from datetime import datetime
+from requests.auth import HTTPBasicAuth
+
+# Suppress TLS warnings, API is self-signed...
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+def sshSession(host, username, password):
+  ssh = paramiko.SSHClient()
+  ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+  ssh.connect(host, port=22, username=username, password=password)
+  return ssh
+
+def splunkSession(splunkurl, username, password):
+  # Create Splunk session
+  url = '{}/services/auth/login'.format(splunkurl)
+  data = {'username': username, 'password': password, 'output_mode': 'json'}
+  req = requests.get(url, verify=False, data=data)
+  try:
+    return req.json()[u'sessionKey']
+  except:
+    print 'Login failed, ensure your username and password are correct'
+    exit(1)
+
+def splunkJobRaise(splunkurl, sessionkey, searchquery):
+  # Raise Splunk search query
+  url = '{}/services/search/jobs'.format(splunkurl)
+  headers = {'Authorization': 'Splunk {}'.format(sessionkey)}
+  data = {'search': searchquery, 'output_mode': 'json'}
+  req = requests.post(url, verify=False, headers=headers, data=data)
+  try:
+    jobid = req.json()[u'sid']
+    print 'Search job raised! id: {}'.format(jobid)
+    return jobid
+  except:
+    for error in req.json()[u'messages']:
+      print 'Error: {}'.format(error[u'text'])
+    exit(1)
+
+def splunkJobStatus(splunkurl, sessionkey, jobid):
+  # Check status of a splunk search job
+  url = '{}/services/search/jobs/{}'.format(splunkurl, jobid)
+  headers = {'Authorization': 'Splunk {}'.format(sessionkey)}
+  data = {'output_mode': 'json'}
+  req = requests.get(url, verify=False, headers=headers, data=data)
+  jobstate = req.json()[u'entry'][0][u'content'][u'dispatchState']
+  if jobstate == 'FAILED':
+    print 'Job failed! Reason: {}'.format(req.json()[u'entry'][0][u'content'][u'messages'][0][u'text'])
+    exit(1)
+  else:
+    return jobstate
+
+def splunkJobResults(splunkurl, sessionkey, jobid):
+  # Fetch search results
+  jobstate = splunkJobStatus(splunkurl, sessionkey, jobid)
+  while jobstate != 'DONE':
+    print 'Job is currently running. Waiting for job to finish, re-checking status in 15 seconds'
+    sleep(15)
+    jobstate = splunkJobStatus(splunkurl, sessionkey, jobid)
+  url = '{}/services/search/jobs/{}/results'.format(splunkurl, jobid)
+  headers = {'Authorization': 'Splunk {}'.format(sessionkey)}
+  data = {'output_mode': 'json'}
+  req = requests.get(url, verify=False, headers=headers, data=data)
+  try:
+    return req.json()[u'results']
+  except:
+    print req.text
+    print '\n Unable to return results, exiting...'
+    exit(1)
+
+def getEdgeBlockList(ssh, file):
+  # Fetching blocklist from netmon1
+  print 'Fetching blocklist...'
+  try:
+    sftp = ssh.open_sftp()
+    sftp.get('/usr/local/updateBlocking/blocked_ips.dg', file)
+    print 'Successfully fetched blocklist.'
+    sftp.close()
+    return True
+  except:
+    sftp.close()
+    print 'Unable to fetch blocklist, exiting...'
+    exit(1)
+
+def addToEdgeBlockList(file, iplist):
+  # Open blocklist, and remove existing entries from the iplist.
+  with open(file, 'r') as fileread:
+    for line in fileread:
+      for ip in iplist:
+        if ip in line:
+          iplist.remove(ip)
+  fileread.close()
+  # Write our iplist to block list file.
+  with open(file, 'a') as fileappend:
+    for ip in iplist:
+      print ip
+      fileappend.write('host {} := "Brute force IP blocked",\n'.format(ip))
+  fileappend.close()
+  print '{} IP addresses added to blocklist'.format(len(iplist))
+  if len(iplist) == 0:
+    print 'No IPs to add exiting...'
+    exit(0)
+
+def uploadEdgeBlockList(ssh, file):
+  # Upload blocklist to netmon1
+  print 'Uploading blocklist...'
+  try:
+    sftp = ssh.open_sftp()
+    sftp.put(file, '/usr/local/updateBlocking/blocked_ips.dg')
+    print 'Successfully uploaded blocklist.'
+    sftp.close()
+    return True
+  except:
+    sftp.close()
+    print 'Unable to upload blocklist, exiting...'
+    exit(1)
+
+def deployToEdge(ssh):
+  # Deploy blocklist to bigips with /usr/local/updateBlocking/updateBlocking.py
+  print 'Deploying blocklist to Edge...'
+  command = 'cd /usr/local/updateBlocking && ./updateBlocking.py'
+  try:
+    stdin,stdout,stderr=ssh.exec_command(command)
+    stdoutBuffer = stdout.read()
+    stderrBuffer = stderr.read()
+    if stdoutBuffer:
+      print stdoutBuffer
+      print 'Successfully deployed blocklist to BigIP.'
+      return True
+    if stderrBuffer:
+      print 'Errors: {}'.format(stderrBuffer)
+      return False
+  except:
+    print '\nUnable to deploy blocklist to Edge, exiting...'
+    exit(1)
+
+def getFirewallIps():
+  # Get IP addresses that are blocked on the firewall
+  url = 'http://10.165.208.11/bad_ips.txt'
+  req = requests.get(url)
+  return req.text
+
+def addToFirewallBlockList(username, iplist, file):
+  # Add IP addresses to the firewall blocklist file
+  for line in getFirewallIps().splitlines():
+    for ip in iplist:
+      if ip in line:
+        iplist.remove(ip)
+  timestamp = datetime.now(tz).strftime('%Y/%m/%d,%H%M')
+  with open(file, 'w') as filewrite:
+    for ip in iplist:
+      filewrite.write('{} - {},{}\n'.format(ip, timestamp, username))
+  filewrite.close()
+  if len(iplist) == 0:
+    print 'No IPs to add to exiting...'
+    exit(0)
+
+def uploadFirewallBlockList(ssh, file):
+  # Upload blocklist to cybersec-1.lat.internal
+  print 'Uploading blocklist...'
+  try:
+    sftp = ssh.open_sftp()
+    sftp.put(file, 'incoming/{}'.format(file))
+    print 'Successfully uploaded blocklist.'
+    sftp.close()
+    return True
+  except:
+    sftp.close()
+    print 'Unable to upload blocklist, exiting...'
+    exit(1)
+
+def jiraSession(jiraurl, username, password):
+  # Generate jira session cookies
+  url = '{}/rest/gadget/1.0/login'.format(jiraurl)
+  try:
+    req = requests.post(url, auth=(username, password))
+    try: 
+      auth = req.cookies['atlassian.xsrf.token']
+    except:
+      print 'Jira authentication failed, please check your password'
+      exit(1)
+    return req.cookies
+  except requests.exceptions.RequestException as e:
+    print 'Error: {}\n{}'.format(e, req.text)
+    return  
+
+def jiraCreateIncident(jiraurl, jirasession, portalid, templateid):
+  # Create incident in jira
+  url = '{}/servicedesk/customer/portal/{}/create/{}'.format(jiraurl, portalid, templateid)
+  params = {
+    'atl_token': jirasession['atlassian.xsrf.token'],
+    'projectId': 10701,
+    'reporter': username,
+    'customfield_10905': datetime.now(tz).strftime('%d/%b/%Y %I:%M ') + datetime.now(tz).strftime('%p').lower() ,
+    'customfield_10910': username,
+    'sd-kb-article-viewed': 'false'
+  }
+  headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+  req = requests.post(url, params=params, headers=headers, cookies=jirasession)
+  try:
+    ticketid = req.json()['issue']['key']
+    print 'Created incident: https://jiraops.corp-apps.com/browse/{}'.format(ticketid)
+    return ticketid
+  except requests.exceptions.RequestException as e:
+    print 'Error: {}\n{}'.format(e, req.text)
+    return
+
+def jiraAddComment(jiraurl, jirasession, ticketid, comment):
+  # Add comments to incident
+  print 'Adding comment to {}'.format(ticketid)
+  url = '{}/rest/api/2/issue/{}/comment'.format(jiraurl, ticketid)
+  data = { 'body': comment }
+  headers = {'Content-Type': 'application/json'}
+  try:
+    req = requests.post(url, cookies=jirasession, json=data, headers=headers)
+    return True
+  except requests.exceptions.RequestException as e:
+    print 'Error: {}\n{}'.format(e, req.text)
+    return
+
+def jiraTransitionIncident(jiraurl, jirasession, ticketid, transitionid):
+  # Transition incidents between statuses
+  comment = 'Transitioning incident to: {}'.format(transitions.keys()[transitions.values().index(transitionid)])
+  print comment
+  url = '{}/rest/api/2/issue/{}/transitions'.format(jiraurl, ticketid)
+  data = { 'update': { 'comment': [ { 'add': { 'body': comment } } ] }, 'transition': { 'id': transitionid } }
+  headers = {'Content-Type': 'application/json'}
+  try:
+    req = requests.post(url, cookies=jirasession, json=data, headers=headers)
+    return True
+  except requests.exceptions.RequestException as e:
+    print 'Error: {}\n{}'.format(e, req.text)
+    return
+
+def jiraUpdateFields(jiraurl, jirasession, ticketid, fields):
+  # Update any custom fields
+  print 'Updating fields'
+  url = '{}/rest/api/2/issue/{}'.format(jiraurl, ticketid)
+  data = { 'fields': fields }
+  headers = {'Content-Type': 'application/json'}
+  try:
+    req = requests.put(url, cookies=jirasession, json=data, headers=headers)
+    return True
+  except requests.exceptions.RequestException as e:
+    print 'Error: {}\n{}'.format(e, req.text)
+    return
+
+def jiraAddTimeSpent(jiraurl, jirasession, ticketid, timespent):
+  print 'Adding {} of time spent'.format(timespent)
+  url = '{}/rest/api/2/issue/{}/worklog'.format(jiraurl, ticketid)
+
+  data = { 'timeSpent': timespent, 'started': datetime.now(tz).strftime('%Y-%m-%dT%H:%M:00.000-0500') }
+  headers = {'Content-Type': 'application/json'}
+  try:
+    req = requests.post(url, cookies=jirasession, json=data, headers=headers)
+    return True
+  except requests.exceptions.RequestException as e:
+    print 'Error: {}\n{}'.format(e, req.text)
+    return
+
+def jiraJqlIssues(jiraurl, jirasession, query):
+  # Find jira issues from JQL query
+  print 'Finding issues using query: {}'.format(query)
+  url = '{}/rest/api/2/search'.format(jiraurl)
+  data = {
+    'jql': query,
+    'startAt': 0,
+    'maxResults': 20,
+    'fields': ['summary', 'status', 'assignee']
+  }
+  try:
+    req = requests.get(url, params=data, cookies=jirasession)
+    return req.json()['issues']
+  except requests.exceptions.RequestException as e:
+    logger.error('{} {}'.format(e, req.text))
+
+if __name__ == '__main__':
+  # Set timezone for datetime
+  tz = pytz.timezone('EST')
+
+  # API URLs
+  jiraurl = 'https://jiraops.corp-apps.com'
+
+  # Local blocklist file
+  edgeblocklist = 'blocked_ips.dg'
+  firewallblocklist = 'bad_ips.txt'
+
+  # Get our credentials from the user
+  username = os.environ['USER']
+  password = getpass.getpass(prompt='Enter password for {}: '.format(username))
+  itospassword = getpass.getpass(prompt='Enter password for itos@cybersec-1.lat.internal: ')
+
+  # Splunk search queries
+  queries = { 
+    'https://splunksearch-1.bel2.corp-apps.com:8089': 'search earliest=-24h host=web-api-* "failed" OR "successful" | rex "from IP (?<which_ip>.*) for (?<siteID>.*) and GEOIP (?<GEOIP>.*) was (?P<action>\w+)" | stats list(action) as Attempts, values(siteID) as siteID, values(GEOIP) as GEOIP, count(eval(match(action,"failed"))) as Failed, count(eval(match(action,"success"))) as Success by which_ip | where mvcount(Attempts)>=100 AND Success>=0 AND Failed>=100 | sort by -Failed | where NOT [|inputlookup exclude_ips.csv | rename ip AS which_ip | fields which_ip] | table which_ip siteID GEOIP Failed Success',
+    'https://splunkindexvarnish-1.bel2.internal:8089': 'search earliest=-5h host=10.42.8.* bovada GET http checkemail | rex "(?<which_ip>\d+\.\d+\.\d+\.\d+), \d+\.\d+\.\d+\.\d+.*\\"GET http.*checkemail\/(?<email_address>.*) HTTP/1\..\\" (?<action>\S+)" | dedup email_address action | stats list(action) as Attempts,  values(email_address) as email_address, count(eval(match(action,"404"))) as Failed, count(eval(match(action,"204"))) as Success by which_ip | where mvcount(Attempts)>=100 AND Success>=10 | sort by -Failed | table which_ip Failed Success'
+  }
+
+  # Jira transitions (status changes)
+  transitions = {
+    'ASSIGNED': 11,
+    'IN PROGRESS': 41,
+    'SOLVED-PROPOSED': 131,
+    'SOLVED-CONFIRMED': 151
+  }
+
+  # Query Splunk and create ip list
+  iplist = []
+  for url in queries.keys():
+    sessionkey = splunkSession(url, username, password)
+    print 'Searching on {}'.format(url)
+    jobid = splunkJobRaise(url, sessionkey, queries[url])
+    for result in splunkJobResults(url, sessionkey, jobid):
+      iplist.append(str(result[u'which_ip']))
+  iplist = list(set(iplist))
+
+  # Connect to netmon1.lat.internal, get blocklist, update blocklist, run deploy script 
+  ssh = sshSession('netmon1.lat.internal', username, password)
+  getEdgeBlockList(ssh, edgeblocklist)
+  addToEdgeBlockList(edgeblocklist, iplist)
+  uploadEdgeBlockList(ssh, edgeblocklist)
+  deployToEdge(ssh)
+  ssh.close()
+
+  # Connect to cybersec-1.lat.internal and upload blocklist
+  ssh = sshSession('cybersec-1.lat.internal', 'itos', itospassword)
+  addToFirewallBlockList(username, iplist, firewallblocklist)
+  uploadFirewallBlockList(ssh, firewallblocklist)
+  ssh.close()
+
+  # Create jira session
+  jirasession = jiraSession(jiraurl, username, password)
+
+  # Search for existing issues
+  issues = jiraJqlIssues(jiraurl, jirasession, '"SOP (Insight)" = SOP-601 AND created > -9h AND status = "In Progress"')
+  if issues:
+    # Use issue if there is one already open
+    issuekey = issues[0]['key']
+    print 'Found {}'.format(issuekey)
+  else:
+    # Create a issue if there isn't one
+    issuekey = jiraCreateIncident(jiraurl, jirasession, '6', '1031')
+    jiraTransitionIncident(jiraurl, jirasession, issuekey, transitions['ASSIGNED'])
+    jiraTransitionIncident(jiraurl, jirasession, issuekey, transitions['IN PROGRESS'])
+    timestamp = datetime.now(tz)
+    customfields = {
+      'customfield_10922': { 'value': 'Known Error Procedure' },
+      'customfield_10923': timestamp.strftime('%Y-%m-%dT%H:%M:00.000-0500'),
+      'customfield_10913': 'IPs are blocked using ITOS script',
+      'customfield_10014': { 'value': 'Delta&Zeta ' },
+      'customfield_10902': { 'value': 'Low' },
+      'customfield_10924': '{}\n{}:03: Splunk Alert stating multiple IP addresses attempting a high number of logins.\n{}: ITOS have blocked IP addresses using script.'.format(timestamp.strftime('%a, %d %b %Y'), timestamp.strftime('%H'), timestamp.strftime('%H:%M'))
+    }
+    jiraUpdateFields(jiraurl, jirasession, issuekey, customfields)
+
+  # Add a comment, and some timespent
+  jiraAddComment(jiraurl, jirasession, issuekey, '{} IP addresse(s) have been added to the blocklist\n{{code}}\n{}{{code}}\n'.format(len(iplist), iplist))
+  jiraAddTimeSpent(jiraurl, jirasession, issuekey, '5m')
+
+  # Tidy up our old issues
+  issues = jiraJqlIssues(jiraurl, jirasession, '"SOP (Insight)" = SOP-601 AND created < -8h AND status = "In Progress"')
+  if issues:
+    for issue in issues:
+      issuekey = issue['key']
+      print 'Found {}'.format(issuekey)
+      jiraTransitionIncident(jiraurl, jirasession, issuekey, transitions['SOLVED-PROPOSED'])
+      jiraTransitionIncident(jiraurl, jirasession, issuekey, transitions['SOLVED-CONFIRMED'])
