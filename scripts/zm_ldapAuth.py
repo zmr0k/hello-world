@@ -1,25 +1,20 @@
 import requests, getpass
 
 jiraurl = "https://jiraops.corp-apps.com/"
-urll = "http://sdsdsdsdssdsd.com"
+
 r = requests.get(jiraurl)
-z = requests.get(urll)
 
-if z:
-    print "OK"
-else:
-    print "Error"
-    close(-1)
 
-if z.status_code == 200 or z.status_code == 304:
-    print "Status code:", z.status_code
+
+if r.status_code == 200 or r.status_code == 304:
+    print "Status code:", r.status_code
 # we dont want to get a page
 #    print "Text:", r.text
-    print "Header:", z.headers
-    print "Cookies", z.cookies
+    print "Header:", r.headers
+    print "Cookies", r.cookies
 
 else:
-    print "Status code", z.status_code, "is not 200"
+    print "Status code", r.status_code, "is not 200"
     exit(-1)
 
 def jiraSession(jiraurl, username, password):
