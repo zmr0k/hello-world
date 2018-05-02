@@ -1,10 +1,8 @@
-import requests, getpass
+import requests, getpass, sys, paramiko
 
 jiraurl = "https://jiraops.corp-apps.com/"
 
 r = requests.get(jiraurl)
-
-
 
 if r.status_code == 200 or r.status_code == 304:
     print "Status code:", r.status_code
@@ -22,6 +20,7 @@ def jiraSession(jiraurl, username, password):
   url = '{}/rest/gadget/1.0/login'.format(jiraurl)
   try:
     req = requests.post(url, auth=(username, password))
+    print "Req is:", req
     try:
       auth = req.cookies['atlassian.xsrf.token']
     except:
@@ -32,8 +31,20 @@ def jiraSession(jiraurl, username, password):
     print 'Error: {}\n{}'.format(e, req.text)
     return
 
-username = "vklaniuk"
-password = getpass.getpass(prompt='Enter password for {}: '.format(username))
+def sshSession(host, username, password):
+  ssh = paramiko.SSHClient()
+  print ssh
+  ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-myjirasession = jiraSession(jiraurl, username, password)
-print myjirasession
+  ssh.connect(host, port=22, username=username, password=password)
+  return ssh
+
+host = "localhost"
+username = "vklaniuk"
+#password = getpass.getpass(prompt='Enter password for {}: '.format(username), stream=sys.stderr)
+password = "test"
+
+mysshsession = sshSession(host, username, password)
+
+#myjirasession = jiraSession(jiraurl, username, password)
+#print myjirasession
