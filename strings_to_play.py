@@ -25,3 +25,6 @@ print data[2]  # 2015-10-1
 
 for temp in data:
     print temp
+
+
+print "hello Mike"
