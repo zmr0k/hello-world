@@ -27,4 +27,4 @@ for temp in data:
     print temp
 
 
-print "hello Vadim "
+print "hello"
