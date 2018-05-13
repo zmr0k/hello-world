@@ -1,12 +1,10 @@
 
-myfile = open("myfile.txt")
+try:
+    myfile = open("myfile.txt", "a+")
 
-if myfile == True:
-    print "File was opened: status", myfile
-else:
-        print "Error IO"
-        exit(-1)
+    print "Read operation", myfile.read(10)
+    addstring = myfile.write("New string\n")
+    print "New line was added", addstring
 
-print "Read operation", myfile.read()
-
-print "File was closed: status", myfile.close()
+finally:
+    print "\nFile was closed correctly\n", myfile.close()
