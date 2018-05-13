@@ -1,10 +1,14 @@
 
 try:
     myfile = open("myfile.txt", "a+")
-
-    print "Read operation", myfile.read(10)
+    myfile.seek(0)
+    a = 8
+    print "Reading 1st", a, "chars", myfile.read(a)
+    myfile.seek(5)
     addstring = myfile.write("New string\n")
-    print "New line was added", addstring
+    print "Reading 2nd", a, "chars", myfile.read(a)
+
+    print myfile.readline()
 
 finally:
     print "\nFile was closed correctly\n", myfile.close()
