@@ -1,8 +1,8 @@
 
 # create new file
-with open("file2", "a+") as file2:
-    file2.write("Hello world 1\n")
+with open("file2", "w+") as file2:
     file2.write("Hello world 2\n")
+#    file2.readline()
 #    file2.write("Hello world 3")
 #    file2.write("Hello world 1\n")
     file2.close()
