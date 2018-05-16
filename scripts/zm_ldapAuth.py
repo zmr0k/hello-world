@@ -31,20 +31,37 @@ def jiraSession(jiraurl, username, password):
     print 'Error: {}\n{}'.format(e, req.text)
     return
 
+def sshoutput():
+    print "\nSSHoutput: "
+
 def sshSession(host, username, password):
   ssh = paramiko.SSHClient()
-  print ssh
+  print sshoutput(), ssh, "\n"
+  print "Remote server key is:", ssh.get_host_keys()
   ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
   ssh.connect(host, port=22, username=username, password=password)
   return ssh
 
+def squareit(x):
+    return x*x
+
+# main()
+
+#y = raw_input("Please enter any int (str): ")
+z = int(input("Please enter any int: "))
+print "Squareit of", z, "is", squareit(z)
+
 host = "localhost"
-username = "vklaniuk"
+username = "user3"
+username = "user3"
 #password = getpass.getpass(prompt='Enter password for {}: '.format(username), stream=sys.stderr)
-password = "test"
+#password = "Qwerty654321"
+password = getpass.win_getpass()
 
 mysshsession = sshSession(host, username, password)
+print sshoutput(), "mysshsession:", mysshsession
+mysshsession.close()
 
 #myjirasession = jiraSession(jiraurl, username, password)
 #print myjirasession
