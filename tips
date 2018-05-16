@@ -17,3 +17,4 @@ export http_proxy=http://proxy_host:proxy_port
 
 # shell: find
 find / -path /srv -prune -o -type f -a -size +100M -print (exclude some path ..)
+alias "findg"="find / \( -path /proc -or -path /sys \) -prune -o"
