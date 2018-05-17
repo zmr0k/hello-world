@@ -1,5 +1,6 @@
-def mystring(str)
+def mystring(str):
     return "Returned string is", str
 
-if __main__ == "__main__":
-    mystring("This string is passing to function \"mystring\"")
+if __name__ == '__main__':
+    rstr = mystring("This string is passing to function \"mystring()\"")
+    print rstr

@@ -44,22 +44,24 @@ def sshSession(host, username, password):
 def squareit(x):
     return x*x
 
-# main()
+
+if __name__ == "__main__":
 
 #y = raw_input("Please enter any int (str): ")
 #z = int(input("Please enter any int: "))
 #print "Squareit of", z, "is", squareit(z)
 
-host = "localhost"
-username = "user3"
+    host = "localhost"
+    username = "user3"
 #password = getpass.getpass(prompt='Enter password for {}: '.format(username), stream=sys.stderr)
-#password = "Qwerty654321"
-password = getpass.win_getpass()
+    password = "Qwerty654321"
+    print ("Enter below your LDAP password")
+#    password = getpass.win_getpass()
 
-mysshsession = sshSession(host, username, password)
-print sshoutput(), "mysshsession:", mysshsession
-print "Remote server key is:", mysshsession.get_host_keys()
-mysshsession.close()
+    mysshsession = sshSession(host, username, password)
+    print sshoutput(), "mysshsession:", mysshsession
+    print "Remote server key is:", mysshsession.get_host_keys()
+    mysshsession.close()
 
 #myjirasession = jiraSession(jiraurl, username, password)
 #print myjirasession
