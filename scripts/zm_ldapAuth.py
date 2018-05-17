@@ -1,6 +1,6 @@
-import requests, getpass, sys, paramiko
+import requests, getpass, sys
 
-jiraurl = "https://jiraops.corp-apps.com/"
+jiraurl = "https://jiraops.mdev.corp-apps.com"
 
 r = requests.get(jiraurl)
 
@@ -31,19 +31,6 @@ def jiraSession(jiraurl, username, password):
     print 'Error: {}\n{}'.format(e, req.text)
     return
 
-def sshoutput():
-    print "\nSSHoutput: "
-
-def sshSession(host, username, password):
-  ssh = paramiko.SSHClient()
-  print sshoutput(), ssh, "\n"
-  ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-  ssh.connect(host, port=22, username=username, password=password)
-  return ssh
-
-def squareit(x):
-    return x*x
-
 
 if __name__ == "__main__":
 
@@ -55,13 +42,8 @@ if __name__ == "__main__":
     username = "user3"
 #password = getpass.getpass(prompt='Enter password for {}: '.format(username), stream=sys.stderr)
     password = "Qwerty654321"
-    print ("Enter below your LDAP password")
+#    print ("Enter below your LDAP password")
 #    password = getpass.win_getpass()
-
-    mysshsession = sshSession(host, username, password)
-    print sshoutput(), "mysshsession:", mysshsession
-    print "Remote server key is:", mysshsession.get_host_keys()
-    mysshsession.close()
 
 #myjirasession = jiraSession(jiraurl, username, password)
 #print myjirasession
