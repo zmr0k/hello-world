@@ -37,9 +37,7 @@ def sshoutput():
 def sshSession(host, username, password):
   ssh = paramiko.SSHClient()
   print sshoutput(), ssh, "\n"
-  print "Remote server key is:", ssh.get_host_keys()
   ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
   ssh.connect(host, port=22, username=username, password=password)
   return ssh
 
@@ -49,11 +47,10 @@ def squareit(x):
 # main()
 
 #y = raw_input("Please enter any int (str): ")
-z = int(input("Please enter any int: "))
-print "Squareit of", z, "is", squareit(z)
+#z = int(input("Please enter any int: "))
+#print "Squareit of", z, "is", squareit(z)
 
 host = "localhost"
-username = "user3"
 username = "user3"
 #password = getpass.getpass(prompt='Enter password for {}: '.format(username), stream=sys.stderr)
 #password = "Qwerty654321"
@@ -61,6 +58,7 @@ password = getpass.win_getpass()
 
 mysshsession = sshSession(host, username, password)
 print sshoutput(), "mysshsession:", mysshsession
+print "Remote server key is:", mysshsession.get_host_keys()
 mysshsession.close()
 
 #myjirasession = jiraSession(jiraurl, username, password)
