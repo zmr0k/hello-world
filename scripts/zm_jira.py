@@ -21,4 +21,4 @@ print projects_list
 issue = jira.issue("ITO-98297")
 print issue
 
-update_issue = jira._check_update_()
+update_issue = jira.comment("ITO-98297", "1st comment")
