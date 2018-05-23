@@ -28,7 +28,7 @@ def jiraJqlIssues(jiraurl, jirasession, query):
   }
   try:
     req = requests.get(url, params=data, cookies=jirasession)
-    return req.json()['issues']
+    return req.json()
   except requests.exceptions.RequestException as e:
     logger.error('{} {}'.format(e, req.text))
 
@@ -66,5 +66,5 @@ if __name__ == "__main__":
     print myjirasession
 
 # Search for existing issues
-    issues = jiraJqlIssues(jiraurl, myjirasession, 'Can i create')
+    issues = jiraJqlIssues(jiraurl, myjirasession, 'create')
     print issues
