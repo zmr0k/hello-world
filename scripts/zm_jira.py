@@ -1,24 +1,46 @@
 from jira import JIRA
 import getpass
 
-jiralogin = "vklaniuk"
-jirapass = getpass.win_getpass()
+if __name__ == "__main__":
 
-options = {
-    'server': "https://jiraops.mdev.corp-apps.com",
-#    'auth': "jiralogin", "jirapasss"
+    jiralogin = "vklaniuk"
+    jirapass = getpass.win_getpass()
 
-}
+    options = {
+        'server': "https://jiraops.mdev.corp-apps.com",
+    #    'auth': "jiralogin", "jirapasss"
+    }
 
-jira = JIRA(options, auth=(jiralogin, jirapass))
+    try:
+        jira = JIRA(options, auth=(jiralogin, jirapass))
+        print "Jira object is [", jira, "]"
+    except:
+        print "\nJira auth failed. No session was created\n"
 
+    try:
+        projects_list = jira.projects()
+        for i in projects_list:
+            print i
+    except:
+        print "Error: Exception on projects list."
 
-print "Jira object is [", jira, "]"
+    myito = "ITO-98297"
+    issue = jira.issue(myito)
+    print issue
 
-projects_list = jira.projects()
-print projects_list
+    text = "Just text for comment"
+    try:
+        comment_issue = jira.add_comment(myito, text)
+    except:
+        print "Error putting comment"
+        exit(-1)
 
-issue = jira.issue("ITO-98297")
-print issue
+    assignee = jira.assign_issue(myito, jiralogin)
+    jira.close()
 
-update_issue = jira.comment("ITO-98297", "1st comment")
+    #create_issue = jira.create_issue(project="INC", summary="Creating issue with python", description="Description: Creating issue with python")
+#    jira.assign_issue(jiralogin)
+#    jira.close()
+
+    issues_in_inc = jira.search_issues(project="INC")
+    print issues_in_inc
