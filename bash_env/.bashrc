@@ -91,7 +91,7 @@ fi
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
-alias ssh='ssh -l vklaniuk'
+alias ssh='ssh -l vklaniuk -o "ConnectTimeout 3" -o "StrictHostKeyChecking no"'
 alias nc='nc -v -w5'
 alias python=python2.7
 
