@@ -17,6 +17,10 @@ if __name__ == "__main__":
     except:
         print "\nJira auth failed. No session was created\n"
 
+
+    #ff = jira.project_components()
+    print ff
+
     #try:
     #    projects_list = jira.projects()
     #    for i in projects_list:
@@ -48,6 +52,7 @@ if __name__ == "__main__":
     #['issuetype']
 
     issue_dict = {
+        #'project': {'name': 'IT Operations'},
         'project': {'name': 'IT Operations'},
         'summary': 'zm-Savage-Test',
         'description': 'zm_savage-test',
@@ -56,7 +61,7 @@ if __name__ == "__main__":
     }
 
     #try:
-    create_issue = jira.create_issue(fields=issue_dict)
+    my_issue = jira.create_issue(fields=issue_dict)
     #except:
     #    print "Exception: issue wasn't created"
 #    jira.assign_issue(jiralogin)
