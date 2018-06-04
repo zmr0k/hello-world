@@ -1,4 +1,4 @@
-time gzip -9  < access.log > access.log.gz
+time gzip -v -9  < access.log > access.log.gz
 
 # SNMP
 snmpwalk -v2c -c xxxxx <hostname or IP>  system
