@@ -15,7 +15,7 @@ HISTFILESIZE=99999999
 alias ssh='ssh -l vklaniuk -o "ConnectTimeout 3" -o "StrictHostKeyChecking no"'
 alias nc='nc -v -w5'
 alias python=python2.7
-alias findg='find / \( -path /proc -or -path /sys \) -prune -o' 
+alias findg='find / \( -path /proc -or -path /sys \) -prune -o'
 
 #export DOCKER_HOST=localhost:2375
 
