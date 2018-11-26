@@ -53,3 +53,19 @@ if (len(my_string) > 10):
 else: print("Lenght is <10", len(my_string))
 print(my_string[::-1])
 
+my_string = "z" + my_string[1:]
+print(my_string.split())
+
+for i in my_string.split():
+    if i == "zadim":
+        continue
+        print (i)
+
+print("Att{1} {2} {0}".format("ention", "python", "learner"))
+
+name = "Vadzim"
+age = 9
+print(f"Hi, {name} is {age} years old")
+
+my_first_list = [1, 2.0, "Three"]
+print ("Lenght of my list is: %f" %len(my_first_list))
