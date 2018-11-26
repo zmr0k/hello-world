@@ -1,0 +1,13 @@
+#!/bin/bash
+# script to check if puppet has been running for more than MAX_SECONDS
+MAX_SECONDS=300
+seconds=$[ `ps -e -o etime,time,cmd | grep "puppet agent"  | grep -v grep | grep -v "00:00:00" | awk '{print $1;}' | awk -F: '{print  ($1 * 60) + $2}'`]
+
+#if [ "$seconds" -lt "$MAX_SECONDS" ]
+#then
+#        echo 0
+#else
+#        echo  "${seconds}"
+#fi
+echo  "${seconds}"
+
