@@ -69,3 +69,4 @@ print(f"Hi, {name} is {age} years old")
 
 my_first_list = [1, 2.0, "Three"]
 print ("Lenght of my list is: %f" %len(my_first_list))
+print ("Taking 2nd and 3rd index:", my_first_list[1:])
