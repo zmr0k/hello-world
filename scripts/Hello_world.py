@@ -70,3 +70,58 @@ print(f"Hi, {name} is {age} years old")
 my_first_list = [1, 2.0, "Three"]
 print ("Lenght of my list is: %f" %len(my_first_list))
 print ("Taking 2nd and 3rd index:", my_first_list[1:])
+
+mod_list = my_first_list.append("new_object")
+mod_list = my_first_list.append({'k0':"string"})
+print(my_first_list)
+print(type(my_first_list))
+
+print("<<< Dictionary unordered mappings, index can be changed : {} is used\n>>>\n")
+my_first_dic = {'k1':1.0, 'k2':2, 'k3':"char", 'k4':['A','b',4.0,900,'z']}
+print (my_first_dic['k4'][4].upper())
+print(my_first_dic['k4'])
+print(type(my_first_dic))
+
+print("\n << TUPLES (similar lists)>>\n1. Immutable\n2. () is used\n")
+my_first_tuple = (1.0, "string", 55, ["1st index string_in_list_and_in_tuple", 2.0,990], {'k1':"Key1_dic", 'k2':"Key2_dic"})
+print(my_first_tuple[3][0])
+print("Count elements in tuples", my_first_tuple.count(555.0), "index", my_first_tuple.index({'k1':"Key1_dic", 'k2':"Key2_dic"}))
+# my_first_tuple[0] = 2.0
+
+
+print("\nSet - unordered uniq collection of any data\nUsage: function set() is used")
+my_first_set = set()
+my_first_set.add("string")
+my_first_set.add("String")
+print("Set is:", my_first_set)
+print(set('Mississippi'))
+
+print("\nBooleans : True, False, None\nNone is used if we don't know which logic should be defined")
+b = None
+print(b)
+
+print("Let's work with IO")
+with open('C:\\Users\VKLANIUK\\tmp\\transactions.txt',mode='r') as file1:
+    print(file1.read())
+    print("\n\n===========================================\n\n")
+    file1.seek(0)
+    print(file1.read())
+
+counter = 0
+while counter <= 10:
+    counter += 1
+    with open('C:\\Users\VKLANIUK\\tmp\\transactions.txt',mode='a') as file2:
+        file2.write("New data " + str(counter) + "\n")
+
+#    with open('C:\\Users\VKLANIUK\\tmp\\transactions.txt',mode='r+') as file2:
+#        print(file2.read())
+
+i = 0
+k = 0
+for i in range(9):
+    for k in range(9):
+        print(i+k)
+        k += 1
+    i+=1
+
+
