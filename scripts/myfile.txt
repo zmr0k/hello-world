@@ -1,0 +1,17 @@
+feb16-2018
+https://jiraops.corp-apps.com/servicedesk/agent/INC/issue/INC-113618
+https://jiraops.corp-apps.com/servicedesk/agent/ITO/issue/ITO-108425
+
+
+feb18-2018
+https://jiraops.corp-apps.com/servicedesk/agent/INC/issue/INC-113454
+
+feb19-2018
+https://jiraops.corp-apps.com/browse/INC-113659?filter=14125
+
+feb21-2018
+https://jiraops.corp-apps.com/servicedesk/agent/INC/issue/INC-113695
+
+
+Joel ticket (git) mssql-cache-ratio:
+https://jiraops.corp-apps.com/browse/ITO-106075

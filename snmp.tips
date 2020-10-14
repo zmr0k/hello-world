@@ -1,0 +1,80 @@
+snmp documentation.txt
+
+To verify snmp is running:
+
+For internal nodes:
+
+ps -ef|grep snmp
+root      1873     1  0 Feb02 ?        00:49:21 /usr/sbin/snmpd
+
+more /etc/snmp/snmpd.conf  --->  file is pushed by Puppet.  Last line should contain:
+
+agentaddress <node IP>:161
+
+From ONMS server:
+
+snmpwalk -v2c -c calvex-yvr-ro <internal IP>
+
+or
+
+
+snmpwalk -v2c -c yvr-ro-calvex <internal IP>
+
+(-c means community name  - which is used in icinga)
+
+Check service is running:
+
+Centos 6: service snmpd status
+Centos 7: systemctl status snmpd
+
+
+
+For external nodes:
+
+# ps -ef|grep snmp
+root      4598     1  0 01:59 ?        00:00:00 /usr/sbin/snmpd -LS0-6d -Lf /dev/null -p /var/run/snmpd.pid
+
+From ONMS server:
+
+snmpwalk -v 3 -u getdata -l authNoPriv -a MD5 -A 24IndMep <external ip>
+
+
+
+
+If receiving Unknown User for snmpwalk v3, look in files:
+
+/var/lib/net-snmp/snmpd.conf  ---->  look for line "createUser getdata MD5 "24IndMep" DES 24IndMep"
+
+/etc/snmp/snmpd.conf   ----->   look for lines  "iquerySecName getdata
+                                                 rouser getdata"
+
+
+
+
+If user getdata is missing, you need to create the user getdata with:
+
+As root:
+
+1- Stop snmpd
+
+2- net-snmp-create-v3-user -ro -a 24IndMep -x 24IndMep getdata
+
+3- Start snmpd
+
+
+
+If still not working, 
+
+- run snmpwalk on the node itself.
+- iptables -L -n —> verify port 161 is open for ONMS node public IP.
+
+
+On ONMS, you can do:
+
+traceroute -p 161 <ip of the node>
+
+**************** In Windows ********************
+
+To configure snmp, you need to open the snmp service, and look in the different tabs.  Need to add the community name and the IP number of the snmp server.
+
+Windows default snmp, does not support snmp V3.
